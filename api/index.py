@@ -168,6 +168,24 @@ async def ws_endpoint(websocket: WebSocket, session_id: str):
     except Exception:
         await websocket.send_text("Error")
 
+
+@app.post("/chat")
+async def chat(data: dict):
+    session_id = data.get("session_id")
+    message = data.get("message")
+
+    if not session_id or session_id not in sessions:
+        return JSONResponse({"error": "Invalid session"}, status_code=404)
+
+    paper = sessions[session_id]["text"][:20000]
+    prompt = f"Paper:\n{paper}\n\nQuestion: {message}\nAnswer concisely:"
+    
+    try:
+        answer = await call_llm(prompt)
+        return {"answer": answer}
+    except Exception as e:
+        return {"error": "LLM failed"}        
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("script:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("index:app", host="0.0.0.0", port=8000, reload=True)
